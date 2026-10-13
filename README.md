@@ -39,28 +39,28 @@ when only the position is rejected).
 
 ## Install
 
+```sh
+dsh plugin --profile <profile> add flying4055/dsh-window-bounds
+```
+
+The package declares `dsh.bundle.patch`, so `dsh plugin add` installs it, appends
+it to the profile's `dsh.profile.bundles`, and mounts its `cordis.patch.yml`; the
+matching `remove` takes it back out. Restart the profile afterwards.
+
 ### Desktop app
 
-The desktop profile is owned by the Electron application. Install into it through
-the application's own plugin surface (Plugins → Add plugin), which places the
-package in the profile and mounts its bundle patch.
-
-A profile the `dsh` CLI can write to takes the standard path instead:
-
-```sh
-dsh plugin --profile <profile> add dsh-window-bounds
-```
+The desktop profile is owned by the Electron application, which refuses CLI
+operations on it. Install into it through the application's own plugin surface
+(Plugins → Add plugin) and enter `flying4055/dsh-window-bounds`.
 
 ### By hand
 
-Place the package in the profile's `node_modules` and add one insert entry to the
-profile patch:
+For a profile nothing else manages, place the package in its `node_modules` and
+add one insert entry to the profile patch:
 
 ```sh
 cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # or %USERPROFILE%\.dsh\...
 ```
-
-Then add to `~/.dsh/profiles/desktop/cordis.patch.yml`:
 
 ```yaml
 - insert:
@@ -68,12 +68,12 @@ Then add to `~/.dsh/profiles/desktop/cordis.patch.yml`:
       name: dsh-window-bounds
 ```
 
-Restart the desktop application. Nothing else is needed: the plugin is enabled by
-default, and it loads no packages of its own (the desktop profile has no
-`@deepseek-ai` packages, and the runtime keeps its dependency tree inside
-`app.asar`, so the plugin validates its own configuration instead of importing a
-schema library). This repository ships `install.mjs`, which performs the copy and
-the patch edit for the local desktop profile and can undo both.
+Nothing else is needed: the plugin is enabled by default, and it loads no
+packages of its own (the desktop profile has no `@deepseek-ai` packages, and the
+runtime keeps its dependency tree inside `app.asar`, so the plugin validates its
+own configuration instead of importing a schema library). This repository ships
+`install.mjs`, which performs the copy and the patch edit for the local desktop
+profile and can undo both.
 
 ## Configure
 
