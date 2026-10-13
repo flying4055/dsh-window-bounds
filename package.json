@@ -1,16 +1,18 @@
 {
   "name": "dsh-window-bounds",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Remember the DeepSeek Harness desktop window size and position between launches",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "lib",
     "src",
+    "locale",
     "cordis.patch.yml",
     "README.md",
     "README.en.md",

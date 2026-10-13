@@ -127,6 +127,26 @@ the panel has no fields to render and `settings/describe` skips it safely.
 `configJsonSchema()` still exports the JSON Schema projection for documentation,
 or for a caller that renders its own form, but it is **not** attached to `Config`.
 
+### Name and description in the plugin panel
+
+The panel card's title and description come from **`locale/<language>.json`**,
+the same convention other plugins in this ecosystem use:
+
+```json
+{
+  "meta": {
+    "title": "Desktop window bounds",
+    "description": "Remember the DeepSeek Harness desktop window size and position..."
+  }
+}
+```
+
+The host reads `${specifier}/locale/en.json` to *discover* the dictionaries, then
+picks `title`/`description` for the active locale, falling back to `package.json`'s
+`name`/`description` when both are missing. `en.json` must therefore exist, or no
+other locale is ever selected — `tests/host.spec.js` asserts both dictionaries are
+present, translated, and packed, so that silent fallback cannot return.
+
 To forget the saved geometry, resize the window and let it settle, or remove the
 key on the `dsh-app://app` origin in the desktop app's DevTools:
 

@@ -110,7 +110,7 @@ if (!existsSync(backupPath)) {
 
 rmSync(packageDir, { recursive: true, force: true })
 mkdirSync(packageDir, { recursive: true })
-for (const entry of ['package.json', 'cordis.patch.yml', 'README.md', 'LICENSE', 'lib', 'src']) {
+for (const entry of ['package.json', 'cordis.patch.yml', 'README.md', 'LICENSE', 'lib', 'locale', 'src']) {
   const from = join(import.meta.dirname, entry)
   if (!existsSync(from)) throw new Error(`missing plugin file: ${from}`)
   cpSync(from, join(packageDir, entry), { recursive: true })

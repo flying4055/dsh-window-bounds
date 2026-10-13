@@ -83,6 +83,21 @@ cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # 或 %USER
 
 `configJsonSchema()` 仍导出 JSON Schema 投影，供文档或自行渲染表单的调用方使用，但它**不挂在 `Config` 上**。
 
+### 插件面板里的名称与介绍
+
+面板卡片上的标题和描述来自 **`locale/<语言>.json`**，约定与生态内其他插件一致：
+
+```json
+{
+  "meta": {
+    "title": "桌面窗口尺寸记忆",
+    "description": "记住 DeepSeek Harness 桌面端的窗口尺寸与位置……"
+  }
+}
+```
+
+宿主读取 `${包名}/locale/en.json` 来**发现**语言字典，再按当前语言挑选 `title`/`description`，两者都缺失时回退到 `package.json` 的 `name`/`description`（也就是英文的包名与描述）。因此 `en.json` 必须存在，否则中文永远不会被选中——`tests/host.spec.js` 会断言两份字典都存在、都是中文、且都在 `files` 与 `exports` 里，避免这种静默回退。
+
 若要遗忘已保存的几何，把窗口调整一次并等它落盘即可，或在桌面端 DevTools 里删除该键：
 
 ```js

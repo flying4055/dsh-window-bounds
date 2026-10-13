@@ -1,8 +1,9 @@
 /**
  * Tests for the host half: config validation, the schema the settings surface
- * reads, and the injection row the shell applies.
+ * reads, the plugin-panel metadata, and the injection row the shell applies.
  */
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
 
@@ -223,4 +224,31 @@ test('the trace log sits in the profile that hosts the plugin', () => {
   assert.equal(logPath, join(profileDir(), 'window-bounds-trace.log'))
   // A package resolves its profile as `<profile>/node_modules/<name>/lib/..`.
   assert.equal(profileDir(), resolve(import.meta.dirname, '..', '..', '..'))
+})
+
+test('the plugin-panel metadata ships a dictionary per locale', () => {
+  // The host reads `${specifier}/locale/en.json` to discover the dictionaries,
+  // then picks the title and description for the active locale, falling back to
+  // package.json's name and description. A missing or malformed dictionary is
+  // therefore silent: the panel would keep showing the English package fields
+  // and nothing would fail. These assertions are what makes that loud.
+  const root = resolve(import.meta.dirname, '..')
+  const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+  const locales = ['en', 'zh']
+  for (const locale of locales) {
+    const path = join(root, 'locale', `${locale}.json`)
+    const dictionary = JSON.parse(readFileSync(path, 'utf8'))
+    assert.equal(typeof dictionary.meta?.title, 'string', `${locale} title`)
+    assert.equal(typeof dictionary.meta?.description, 'string', `${locale} description`)
+    assert.notEqual(dictionary.meta.title.trim(), '', `${locale} title is not blank`)
+  }
+  // The Chinese title is what the panel shows first; keep it from regressing to
+  // the English package name.
+  const zh = JSON.parse(readFileSync(join(root, 'locale', 'zh.json'), 'utf8'))
+  assert.notEqual(zh.meta.title, manifest.name)
+  assert.match(zh.meta.title, /[\u4e00-\u9fff]/u, 'the Chinese title is Chinese')
+  assert.match(zh.meta.description, /[\u4e00-\u9fff]/u, 'the Chinese description is Chinese')
+  // Both locales must be packed, and resolvable through the package exports.
+  for (const entry of locales) assert.ok(manifest.files.includes('locale'), 'locale is packed')
+  assert.equal(manifest.exports['./locale/*.json'], './locale/*.json')
 })
