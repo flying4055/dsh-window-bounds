@@ -28,13 +28,13 @@
     "window-bounds",
     "window-state"
   ],
-  "homepage": "https://github.com/OWNER/dsh-window-bounds#readme",
+  "homepage": "https://github.com/flying4055/dsh-window-bounds#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OWNER/dsh-window-bounds.git"
+    "url": "git+https://github.com/flying4055/dsh-window-bounds.git"
   },
   "bugs": {
-    "url": "https://github.com/OWNER/dsh-window-bounds/issues"
+    "url": "https://github.com/flying4055/dsh-window-bounds/issues"
   },
   "license": "MIT",
   "publishConfig": {
