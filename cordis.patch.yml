@@ -1,0 +1,10 @@
+# dsh-window-bounds bundle patch — mounts the plugin into a dsh profile.
+#
+#   dsh plugin --profile desktop add <this directory>
+#
+# The desktop profile itself is owned by the Electron application, which
+# refuses CLI operations on it; install there by placing this package in the
+# profile's node_modules and adding the entry below to its cordis.patch.yml.
+- insert:
+    - id: window-bounds
+      name: dsh-window-bounds

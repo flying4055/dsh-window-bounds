@@ -1,0 +1,59 @@
+{
+  "name": "dsh-window-bounds",
+  "version": "0.1.0",
+  "description": "Remember the DeepSeek Harness desktop window size and position between launches",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test tests/geometry.spec.js tests/host.spec.js",
+    "prepublishOnly": "node --test tests/geometry.spec.js tests/host.spec.js"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "desktop",
+    "electron",
+    "window-bounds",
+    "window-state"
+  ],
+  "homepage": "https://github.com/OWNER/dsh-window-bounds#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OWNER/dsh-window-bounds.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OWNER/dsh-window-bounds/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
