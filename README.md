@@ -1,65 +1,42 @@
 # dsh-window-bounds
 
-Remember the DeepSeek Harness **desktop** window size and position, so the window
-reopens where you left it instead of at the shell's fixed 1280x820.
+记住 DeepSeek Harness **桌面端**的窗口尺寸和位置，下次启动时窗口回到你上次离开的地方，而不是壳里写死的 1280×820。
 
-## Why a plugin has to do this
+中文 | [English](README.en.md)
 
-The official desktop shell (`@deepseek-ai/dsh-desktop`, Electron) creates its main
-window in `lib/main.js` with hardcoded `width: 1280, height: 820`, and exposes no
-IPC channel for window geometry — the preload bridge carries updates, shortcuts,
-browser views, and the directory picker, but nothing that reads or writes the main
-window bounds. There is also no `DSH_DESKTOP_*` environment variable for it.
+## 为什么需要插件来做
 
-The one surface that remains is the window itself: a page loaded on the
-`dsh-app://app` origin may call `window.resizeTo()` / `window.moveTo()`. The
-shipped [`dsh-ui-scale`](https://github.com/juliankang4/dsh-ui-scale) plugin uses
-exactly that path for its own window-size feature, and this plugin reuses it.
+官方桌面壳（`@deepseek-ai/dsh-desktop`，Electron）在 `lib/main.js` 里把主窗口写死成 `width: 1280, height: 820`，而且没有暴露任何窗口几何相关的 IPC 通道——preload 桥只承载更新、快捷键、内嵌浏览器视图和目录选择器，没有任何读写主窗口 bounds 的能力，也没有对应的 `DSH_DESKTOP_*` 环境变量。
 
-## How it works
+唯一剩下的入口就是窗口本身：`dsh-app://app` 源上的页面可以调用 `window.resizeTo()` / `window.moveTo()`。官方发行版里的 [`dsh-ui-scale`](https://github.com/juliankang4/dsh-ui-scale) 插件正是用这条路径实现它自己的窗口尺寸功能，本插件沿用同一做法。
 
-1. The host half listens on the webserver's `webserver/index-inject` event and
-   pushes one `{ kind: 'script', placement: 'head' }` row.
-2. The desktop shell boots by fetching that injection table from the host
-   (`ctx.webServer.collectIndexInjections()`) and running it before its
-   application bundle mounts — so the resize happens while the window is still
-   hidden, with no visible jump.
-3. The injected script reads the saved geometry from `localStorage`
-   (`dsh-window-bounds:v1` on the `dsh-app://app` origin), resolves it against the
-   current display, applies it, then debounces `resize`/`move` events back into
-   storage.
-4. Saving is debounced rather than done on unload, because closing the desktop
-   window **hides it to the tray** instead of quitting; an unload handler would
-   never run for the common case.
+## 工作原理
 
-Rejected geometry never hides the window: a size below the minimum, a coordinate
-beyond the position bound, or a spot that no longer lies inside the current
-display's work area all fall back to the shell default (a still-valid size is kept
-when only the position is rejected).
+1. Host 半边监听 webserver 的 `webserver/index-inject` 事件，推入一行 `{ kind: 'script', placement: 'head' }`。
+2. 桌面壳启动时向 Host 取这张注入表（`ctx.webServer.collectIndexInjections()`），并在自己的应用 bundle 挂载**之前**执行它——所以缩放在窗口仍处于隐藏状态时就完成了，不会看到跳变。
+3. 注入脚本从 `localStorage` 读取已保存的几何（`dsh-app://app` 源上的 `dsh-window-bounds:v1`），结合当前显示器做校验后应用，随后把 `resize`/`move` 事件防抖写回存储。
+4. 保存采用防抖而不是在卸载时执行，因为点击关闭时桌面窗口是**隐藏到托盘**而非退出；常见路径下卸载回调根本不会触发。
 
-## Install
+被拒绝的几何绝不会把窗口藏起来：尺寸低于下限、坐标超出位置上限、或保存的位置已不在当前显示器工作区内，都会回退到壳的默认值（若只有位置被拒，仍然有效的那部分尺寸会保留）。
+
+## 安装
 
 ```sh
 dsh plugin --profile <profile> add flying4055/dsh-window-bounds
 ```
 
-The package declares `dsh.bundle.patch`, so `dsh plugin add` installs it, appends
-it to the profile's `dsh.profile.bundles`, and mounts its `cordis.patch.yml`; the
-matching `remove` takes it back out. Restart the profile afterwards.
+本包声明了 `dsh.bundle.patch`，因此 `dsh plugin add` 会完成安装、把包名追加进 profile 的 `dsh.profile.bundles`、并挂载它的 `cordis.patch.yml`；对应的 `remove` 会全部撤回。装完重启该 profile 生效。
 
-### Desktop app
+### 桌面端应用
 
-The desktop profile is owned by the Electron application, which refuses CLI
-operations on it. Install into it through the application's own plugin surface
-(Plugins → Add plugin) and enter `flying4055/dsh-window-bounds`.
+桌面 profile 归 Electron 应用独占，CLI 会拒绝对它操作。请在应用内的插件面板（插件 → 添加插件）安装，输入 `flying4055/dsh-window-bounds`。
 
-### By hand
+### 手动安装
 
-For a profile nothing else manages, place the package in its `node_modules` and
-add one insert entry to the profile patch:
+对于没有其他管理方的 profile，把包放进它的 `node_modules`，再在 profile patch 里加一条 insert 条目：
 
 ```sh
-cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # or %USERPROFILE%\.dsh\...
+cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # 或 %USERPROFILE%\.dsh\...
 ```
 
 ```yaml
@@ -68,17 +45,11 @@ cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # or %USERP
       name: dsh-window-bounds
 ```
 
-Nothing else is needed: the plugin is enabled by default, and it loads no
-packages of its own (the desktop profile has no `@deepseek-ai` packages, and the
-runtime keeps its dependency tree inside `app.asar`, so the plugin validates its
-own configuration instead of importing a schema library). This repository ships
-`install.mjs`, which performs the copy and the patch edit for the local desktop
-profile and can undo both.
+不需要其他操作：插件默认启用，且自身不加载任何依赖包（桌面 profile 下没有 `@deepseek-ai` 包，而 runtime 的依赖树在 `app.asar` 内部，所以本插件自行校验配置，不引入 schema 库）。本仓库附带 `install.mjs`，可为本地桌面 profile 完成上述复制与 patch 编辑，并支持撤销。
 
-## Configure
+## 配置
 
-Configuration is the entry's `config` in the profile patch, which the plugin's
-settings form also writes:
+配置写在 profile patch 中该条目的 `config` 下，插件的设置表单也写入同一处：
 
 ```yaml
 - insert:
@@ -89,31 +60,27 @@ settings form also writes:
         restorePosition: true
 ```
 
-| Field | Default | Meaning |
+| 字段 | 默认值 | 含义 |
 | --- | --- | --- |
-| `enabled` | `true` | Restore and save geometry at all. |
-| `remember` | `true` | Persist changed bounds for the next launch. `false` restores but never overwrites. |
-| `restorePosition` | `true` | Apply a saved position, not only the size. |
-| `minWidth` / `minHeight` | `480` / `360` | Smallest restorable size. |
-| `maxPosition` | `8000` | Absolute pixel bound for a restorable `x` or `y`. |
-| `saveDelayMs` | `400` | Debounce delay before persisting changed bounds. |
-| `trace` | `false` | Append what the page measured to `window-bounds-trace.log` in the profile. |
+| `enabled` | `true` | 是否启用几何的还原与保存。 |
+| `remember` | `true` | 是否把变更后的窗口几何持久化供下次启动使用。设为 `false` 时只还原、不覆盖。 |
+| `restorePosition` | `true` | 是否连位置一起还原，而不只是尺寸。 |
+| `minWidth` / `minHeight` | `480` / `360` | 可还原的最小尺寸。 |
+| `maxPosition` | `8000` | 可还原的 `x` 或 `y` 的绝对像素上限。 |
+| `saveDelayMs` | `400` | 持久化变更几何前的防抖延迟。 |
+| `trace` | `false` | 把页面实测到的几何追加写入 profile 下的 `window-bounds-trace.log`。 |
 
-An invalid value fails the plugin load with the offending field named, instead of
-running a policy nobody wrote.
+字段值非法会让插件加载直接失败并指出出错字段，而不是按一份没人写过的策略运行。
 
-To forget the saved geometry, resize the window and let it settle, or remove the
-key on the `dsh-app://app` origin in the desktop app's DevTools:
+若要遗忘已保存的几何，把窗口调整一次并等它落盘即可，或在桌面端 DevTools 里删除该键：
 
 ```js
 localStorage.removeItem('dsh-window-bounds:v1')
 ```
 
-## Verify
+## 验证
 
-Set `trace: true` in the config and relaunch. The plugin then serves a
-`/window-bounds/trace` endpoint that the injected script posts to, and the
-profile gains a `window-bounds-trace.log`:
+在配置里打开 `trace: true` 后重启。插件会提供 `/window-bounds/trace` 端点供注入脚本回传，profile 下会出现 `window-bounds-trace.log`：
 
 ```json
 {"phase":"boot","geometry":{"x":632,"y":290,"outerWidth":1296,"outerHeight":828}, ...,
@@ -122,35 +89,24 @@ profile gains a `window-bounds-trace.log`:
 {"phase":"settled","geometry":{"x":295,"y":214,"outerWidth":1739,"outerHeight":1069}, ...}
 ```
 
-`boot` is what the script found before it acted, `settled` what the window became.
-Equal `target` and settled `geometry` mean the shell honoured the resize; a
-still-default geometry means it did not. Use this instead of the console when the
-packaged shell gives you no console to open.
+`boot` 是脚本动手前看到的几何，`settled` 是窗口最终变成的几何。`target` 与 settled 的 `geometry` 相等，说明壳接受了这次缩放；若几何仍是默认值，则说明没有生效。打包版壳没有可打开的控制台时，用这个代替控制台。
 
-Without tracing, the same numbers are one call away in DevTools:
+不开 trace 时，同样的数字在 DevTools 里一次调用即可拿到：
 
 ```js
 ({ outer: [window.outerWidth, window.outerHeight], at: [window.screenX, window.screenY] })
 ```
 
-## Test
+## 测试
 
 ```sh
 node --test tests/geometry.spec.js tests/host.spec.js
 ```
 
-`tests/geometry.spec.js` runs the injected script's own resolution logic — the
-copy the shell executes — against the same cases as `src/geometry.js`, so the two
-cannot drift. `tests/host.spec.js` covers config validation, the Standard Schema
-projection, and the injection row.
+`tests/geometry.spec.js` 用**注入脚本自身的**解析逻辑（也就是壳真正执行的那份拷贝）跑与 `src/geometry.js` 相同的用例，使两者不可能漂移。`tests/host.spec.js` 覆盖配置校验、Standard Schema 投影，以及注入行。
 
-## Limitations
+## 已知限制
 
-- **Size and position only.** Maximized and fullscreen states are not restored;
-  the shell's own state after `resizeTo` is what the OS reports.
-- **One display's work area.** A saved spot is restored only when it still fits
-  the current display; a position on a disconnected display is dropped while the
-  size is kept.
-- **The shell is the authority.** A future shell release could ignore
-  renderer-initiated resizes or add a first-class geometry setting; this plugin
-  exists because the current shell does neither.
+- **仅尺寸与位置。** 最大化和全屏状态不会被还原；`resizeTo` 之后由操作系统报告的壳状态才是权威。
+- **单一显示器工作区。** 保存的位置只在仍能放进当前显示器时才还原；位于已断开显示器上的位置会被丢弃，而尺寸保留。
+- **壳是最终权威。** 未来的壳版本可能忽略来自渲染进程的缩放，或直接提供一等的几何设置项；本插件存在，是因为当前壳两者都没有。
