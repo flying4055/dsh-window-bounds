@@ -79,8 +79,7 @@ profile and can undo both.
 
 ## Configure
 
-Configuration is the entry's `config` in the profile patch, which the plugin's
-settings form also writes:
+Configuration is the entry's `config` in the profile patch:
 
 ```yaml
 - insert:
@@ -103,6 +102,30 @@ settings form also writes:
 
 An invalid value fails the plugin load with the offending field named, instead of
 running a policy nobody wrote.
+
+### Why the plugin panel shows no form
+
+**This is deliberate — never add `toJSON` to `Config`.** The DSH 0.2.0-rc.2
+settings service decides whether a plugin's Config is renderable with
+`Config !== undefined && 'toJSON' in Config`, and then treats whatever it selected
+as a **schemastery schema**, reading `schema.meta.volatile` and `schema.dict`
+directly. So:
+
+- a plain object that merely looks schema-like passes that test and then throws
+  `TypeError: Cannot read properties of undefined (reading 'volatile')` inside
+  `settings/describe`;
+- that Remote call fails as a whole, and the desktop shell's welcome window dies
+  with `desktop welcome: Web RPC failed` — **the application crashes at startup**.
+
+A real schemastery schema is out of reach from here too: the runtime keeps its
+dependency tree inside `app.asar`, where Node's resolver cannot find
+`@deepseek-ai/schemastery` from a plugin on disk. This plugin therefore exports
+only `~standard` (so the loader still validates `config`) and **no** `toJSON`, so
+the panel has no fields to render and `settings/describe` skips it safely.
+`tests/host.spec.js` asserts that invariant.
+
+`configJsonSchema()` still exports the JSON Schema projection for documentation,
+or for a caller that renders its own form, but it is **not** attached to `Config`.
 
 To forget the saved geometry, resize the window and let it settle, or remove the
 key on the `dsh-app://app` origin in the desktop app's DevTools:

@@ -1,6 +1,6 @@
 {
   "name": "dsh-window-bounds",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Remember the DeepSeek Harness desktop window size and position between launches",
   "type": "module",
   "main": "lib/index.js",

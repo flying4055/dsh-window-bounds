@@ -12,6 +12,7 @@ import {
   STORAGE_KEY,
   TRACE_ROUTE,
   apply,
+  configJsonSchema,
   inject,
   name,
   profileDir,
@@ -107,11 +108,28 @@ test('the schema is a Standard Schema and a JSON Schema projection', () => {
   const result = Config['~standard'].validate({ remember: false })
   assert.equal(result.issues, undefined)
   assert.deepEqual(result.value, { ...DEFAULTS, remember: false })
-  const json = Config.toJSON()
+  const json = configJsonSchema()
   assert.equal(json.type, 'object')
   assert.equal(json.additionalProperties, false)
   assert.deepEqual(Object.keys(json.properties).sort(), Object.keys(DEFAULTS).sort())
   assert.equal(json.properties.minWidth.default, DEFAULTS.minWidth)
+})
+
+test('Config stays invisible to the settings service selection rule', () => {
+  // @deepseek-ai/dsh-settings picks a plugin schema with exactly this test and
+  // then treats the result as a schemastery schema, reading `.meta.volatile` and
+  // `.dict`. A plain object that exposes `toJSON` passes the selection and then
+  // throws inside `settings/describe` — a failed Remote call that takes the
+  // desktop shell's welcome window down with it. This plugin has no schemastery
+  // to offer, so it must stay unselected.
+  const selectSchema = (config) => (config !== undefined && 'toJSON' in config ? config : undefined)
+  assert.equal(selectSchema(Config), undefined)
+  assert.equal('toJSON' in Config, false)
+  // And the crash signature it would produce, for the record.
+  assert.throws(
+    () => selectSchema(Object.assign({ '~standard': Config['~standard'] }, { toJSON: () => ({}) })).meta.volatile,
+    { name: 'TypeError' },
+  )
 })
 
 test('validation fills every default when nothing is configured', () => {

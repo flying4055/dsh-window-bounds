@@ -72,6 +72,17 @@ cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # 或 %USER
 
 字段值非法会让插件加载直接失败并指出出错字段，而不是按一份没人写过的策略运行。
 
+### 为什么插件面板里没有配置表单
+
+**这是刻意的，请不要给 `Config` 加 `toJSON`。** DSH 0.2.0-rc.2 的设置服务用 `Config !== undefined && 'toJSON' in Config` 判断「这个插件的 Config 是否可渲染」，随后把选中的对象**当作 schemastery schema** 使用，直接读取 `schema.meta.volatile` 与 `schema.dict`。于是：
+
+- 一个只是「长得像 schema」的普通对象会通过该判定，然后在 `settings/describe` 中抛出 `TypeError: Cannot read properties of undefined (reading 'volatile')`；
+- 这个 Remote 调用整体失败，桌面端欢迎窗口随之报 `desktop welcome: Web RPC failed`，**应用一启动就崩**。
+
+从插件侧也拿不到真正的 schemastery：运行时把依赖收在 `app.asar` 内部，Node 的解析规则从磁盘上的插件找不到 `@deepseek-ai/schemastery`。所以本插件只导出 `~standard`（供 loader 校验 `config`）而**不导出** `toJSON`，面板自然没有字段可渲染，`settings/describe` 会安全跳过它。`tests/host.spec.js` 中有一道断言守着这个不变式。
+
+`configJsonSchema()` 仍导出 JSON Schema 投影，供文档或自行渲染表单的调用方使用，但它**不挂在 `Config` 上**。
+
 若要遗忘已保存的几何，把窗口调整一次并等它落盘即可，或在桌面端 DevTools 里删除该键：
 
 ```js
