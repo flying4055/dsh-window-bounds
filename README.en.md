@@ -75,7 +75,25 @@ packages of its own (the desktop profile has no `@deepseek-ai` packages, and the
 runtime keeps its dependency tree inside `app.asar`, so the plugin validates its
 own configuration instead of importing a schema library). This repository ships
 `install.mjs`, which performs the copy and the patch edit for the local desktop
-profile and can undo both.
+profile and can undo both; it is a **local-development bypass** — a normal
+install uses `dsh plugin add` or the app's plugin panel, and the two paths should
+not be mixed.
+
+### A GitHub install is pinned to one commit
+
+Installing from GitHub records the resolution as
+`codeload.github.com/.../tar.gz/<commit>`, which is **the main branch at that
+moment**. Later commits do not arrive on their own: the app's plugin toggle only
+enables and disables, it does not re-fetch. Update by running the same add again:
+
+```sh
+dsh plugin --profile <profile> add flying4055/dsh-window-bounds
+```
+
+This also means `locale/`, `lib/`, and the rest must exist **in the commit being
+installed**: when the host reads `<specifier>/locale/en.json` and the directory is
+missing, the panel reports a package-metadata error instead of falling back to
+English. `tests/host.spec.js` and the `files`/`exports` lists guard that.
 
 ## Configure
 

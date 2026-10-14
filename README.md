@@ -45,7 +45,17 @@ cp -r dsh-window-bounds "$DSH_HOME/profiles/desktop/node_modules/"   # 或 %USER
       name: dsh-window-bounds
 ```
 
-不需要其他操作：插件默认启用，且自身不加载任何依赖包（桌面 profile 下没有 `@deepseek-ai` 包，而 runtime 的依赖树在 `app.asar` 内部，所以本插件自行校验配置，不引入 schema 库）。本仓库附带 `install.mjs`，可为本地桌面 profile 完成上述复制与 patch 编辑，并支持撤销。
+不需要其他操作：插件默认启用，且自身不加载任何依赖包（桌面 profile 下没有 `@deepseek-ai` 包，而 runtime 的依赖树在 `app.asar` 内部，所以本插件自行校验配置，不引入 schema 库）。本仓库附带 `install.mjs`，可为本地桌面 profile 完成上述复制与 patch 编辑，并支持撤销；它是**本地开发用的旁路**，正常安装请用上面的 `dsh plugin add` 或应用内插件面板，不要两条路同时用。
+
+### GitHub 安装是按提交钉住的
+
+从 GitHub 安装时，pnpm 会把解析结果记为 `codeload.github.com/.../tar.gz/<commit>`，也就是**锁在当时的 main**。仓库之后有新提交，本地不会自动跟：应用面板里的插件开关只启用/停用，不会重新拉取。要更新，重新执行一次同样的 add 即可：
+
+```sh
+dsh plugin --profile <profile> add flying4055/dsh-window-bounds
+```
+
+这也意味着插件的 `locale/`、`lib/` 等目录必须**在安装时的那个提交里就存在**：宿主读取 `<包名>/locale/en.json` 时若目录缺失，面板会直接报「包元信息错误」，而不是退回英文。`tests/host.spec.js` 与 `package.json` 的 `files`/`exports` 一起守着这条约束。
 
 ## 配置
 
